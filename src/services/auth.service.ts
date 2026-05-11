@@ -1,9 +1,37 @@
 import { api } from "../config/api";
 import { ENV } from "../config/env";
 
-export async function loginPanel() {
-  return api.post("/login", {
+/**
+ * Login to 3x-ui panel
+ * This will store session cookie inside axios instance
+ */
+export async function loginPanel(): Promise<void> {
+  await api.post("/login", {
     username: ENV.PANEL_USERNAME,
     password: ENV.PANEL_PASSWORD,
   });
+}
+
+/**
+ * Check if current session is still valid
+ * 3x-ui returns 200 if logged in, 401 otherwise
+ */
+export async function checkPanelSession(): Promise<boolean> {
+  try {
+    await api.get("/panel/api/status");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Force re-login if session expired
+ */
+export async function ensurePanelLogin(): Promise<void> {
+  const isValid = await checkPanelSession();
+
+  if (!isValid) {
+    await loginPanel();
+  }
 }

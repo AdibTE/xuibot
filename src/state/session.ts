@@ -5,6 +5,7 @@ export interface Session {
   lastActivity: number;
 }
 
+const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 دقیقه
 const sessions = new Map<number, Session>();
 
 export function getSession(userId: number): Session {
@@ -22,4 +23,8 @@ export function resetSession(userId: number) {
     authenticated: false,
     lastActivity: Date.now(),
   });
+}
+
+export function isSessionExpired(session: Session): boolean {
+  return Date.now() - session.lastActivity > SESSION_TIMEOUT;
 }
