@@ -1,14 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerInboundsScene = registerInboundsScene;
-const auth_guard_1 = require("../auth/auth.guard");
-const session_1 = require("../state/session");
-const inbound_service_1 = require("../services/inbound.service");
-function registerInboundsScene(bot) {
+import { requireAuth } from "../auth/auth.guard";
+import { getSession } from "../state/session";
+import { getInbounds, createInbound, deleteInbound, } from "../services/inbound.service";
+export function registerInboundsScene(bot) {
     // 🌐 Inbounds menu
     bot.onText(/🌐 Inbounds/, (msg) => {
-        (0, auth_guard_1.requireAuth)(bot, msg, () => {
-            const session = (0, session_1.getSession)(msg.from.id);
+        requireAuth(bot, msg, () => {
+            const session = getSession(msg.from.id);
             session.step = "INBOUND_MENU";
             session.data = {};
             bot.sendMessage(msg.chat.id, `🌐 مدیریت Inbounds
@@ -23,14 +20,14 @@ function registerInboundsScene(bot) {
     bot.on("message", async (msg) => {
         if (!msg.text || msg.text.startsWith("/"))
             return;
-        const session = (0, session_1.getSession)(msg.from.id);
+        const session = getSession(msg.from.id);
         if (!session.authenticated || !session.step)
             return;
         try {
             switch (session.step) {
                 case "INBOUND_MENU":
                     if (msg.text === "1") {
-                        const list = await (0, inbound_service_1.getInbounds)();
+                        const list = await getInbounds();
                         const text = list.length === 0
                             ? "❌ هیچ Inboundای وجود ندارد"
                             : list
@@ -75,7 +72,7 @@ Remark: ${session.data.remark}
                         bot.sendMessage(msg.chat.id, "❌ لغو شد");
                         return;
                     }
-                    await (0, inbound_service_1.createInbound)({
+                    await createInbound({
                         protocol: session.data.protocol,
                         port: session.data.port,
                         remark: session.data.remark,
@@ -95,7 +92,7 @@ Remark: ${session.data.remark}
                         bot.sendMessage(msg.chat.id, "❌ لغو شد");
                         return;
                     }
-                    await (0, inbound_service_1.deleteInbound)(session.data.id);
+                    await deleteInbound(session.data.id);
                     session.step = undefined;
                     bot.sendMessage(msg.chat.id, "🗑 Inbound حذف شد");
                     break;

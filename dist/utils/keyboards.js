@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.mainKeyboard = void 0;
-exports.mainKeyboard = {
+export const mainKeyboard = {
     reply_markup: {
         keyboard: [
             [{ text: "👤 کاربران آنلاین" }, { text: "📊 وضعیت سیستم" }],

@@ -1,14 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerClientsScene = registerClientsScene;
-const auth_guard_1 = require("../auth/auth.guard");
-const session_1 = require("../state/session");
-const client_service_1 = require("../services/client.service");
-function registerClientsScene(bot) {
+import { requireAuth } from "../auth/auth.guard";
+import { getSession } from "../state/session";
+import { getClients, addClient, deleteClient, resetClientTraffic, } from "../services/client.service";
+export function registerClientsScene(bot) {
     // 👤 Clients entry
     bot.onText(/👤 کاربران/, (msg) => {
-        (0, auth_guard_1.requireAuth)(bot, msg, () => {
-            const session = (0, session_1.getSession)(msg.from.id);
+        requireAuth(bot, msg, () => {
+            const session = getSession(msg.from.id);
             session.step = "CLIENT_MENU";
             session.data = {};
             bot.sendMessage(msg.chat.id, `👤 مدیریت کاربران
@@ -23,7 +20,7 @@ function registerClientsScene(bot) {
     bot.on("message", async (msg) => {
         if (!msg.text || msg.text.startsWith("/"))
             return;
-        const session = (0, session_1.getSession)(msg.from.id);
+        const session = getSession(msg.from.id);
         if (!session.authenticated || !session.step)
             return;
         try {
@@ -51,7 +48,7 @@ function registerClientsScene(bot) {
                 // 📋 LIST
                 case "CLIENT_LIST_INBOUND":
                     session.data.inboundId = Number(msg.text);
-                    const clients = await (0, client_service_1.getClients)(session.data.inboundId);
+                    const clients = await getClients(session.data.inboundId);
                     session.step = undefined;
                     if (!clients.length) {
                         bot.sendMessage(msg.chat.id, "❌ کاربری وجود ندارد");
@@ -88,7 +85,7 @@ Limit: ${session.data.limit} GB
                         bot.sendMessage(msg.chat.id, "❌ لغو شد");
                         return;
                     }
-                    await (0, client_service_1.addClient)(session.data.inboundId, {
+                    await addClient(session.data.inboundId, {
                         email: session.data.email,
                         totalGB: session.data.limit,
                     });
@@ -102,7 +99,7 @@ Limit: ${session.data.limit} GB
                     bot.sendMessage(msg.chat.id, "📧 email کاربر:");
                     break;
                 case "CLIENT_RESET_EMAIL":
-                    await (0, client_service_1.resetClientTraffic)(session.data.inboundId, msg.text);
+                    await resetClientTraffic(session.data.inboundId, msg.text);
                     session.step = undefined;
                     bot.sendMessage(msg.chat.id, "♻️ ترافیک ریست شد");
                     break;
@@ -123,7 +120,7 @@ Limit: ${session.data.limit} GB
                         bot.sendMessage(msg.chat.id, "❌ لغو شد");
                         return;
                     }
-                    await (0, client_service_1.deleteClient)(session.data.inboundId, session.data.email);
+                    await deleteClient(session.data.inboundId, session.data.email);
                     session.step = undefined;
                     bot.sendMessage(msg.chat.id, "🗑 کاربر حذف شد");
                     break;

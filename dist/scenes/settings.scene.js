@@ -1,14 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerSettingsScene = registerSettingsScene;
-const auth_guard_1 = require("../auth/auth.guard");
-const session_1 = require("../state/session");
-const auth_service_1 = require("../services/auth.service");
-function registerSettingsScene(bot) {
+import { requireAuth } from "../auth/auth.guard";
+import { getSession, resetSession } from "../state/session";
+import { loginPanel } from "../services/auth.service";
+export function registerSettingsScene(bot) {
     // ⚙️ Settings entry
     bot.onText(/⚙️ تنظیمات/, (msg) => {
-        (0, auth_guard_1.requireAuth)(bot, msg, () => {
-            const session = (0, session_1.getSession)(msg.from.id);
+        requireAuth(bot, msg, () => {
+            const session = getSession(msg.from.id);
             session.step = "SETTINGS_MENU";
             bot.sendMessage(msg.chat.id, `⚙️ تنظیمات
 
@@ -23,7 +20,7 @@ function registerSettingsScene(bot) {
     bot.on("message", async (msg) => {
         if (!msg.text || msg.text.startsWith("/"))
             return;
-        const session = (0, session_1.getSession)(msg.from.id);
+        const session = getSession(msg.from.id);
         if (!session.authenticated || !session.step)
             return;
         try {
@@ -32,20 +29,20 @@ function registerSettingsScene(bot) {
                 case "SETTINGS_MENU":
                     // 1️⃣ Logout
                     if (msg.text === "1") {
-                        (0, session_1.resetSession)(msg.from.id);
+                        resetSession(msg.from.id);
                         bot.sendMessage(msg.chat.id, "🔒 از حساب خارج شدی.\nبرای ادامه /start را بزن.");
                         return;
                     }
                     // 2️⃣ Reset panel session
                     if (msg.text === "2") {
-                        await (0, auth_service_1.loginPanel)();
+                        await loginPanel();
                         session.step = undefined;
                         bot.sendMessage(msg.chat.id, "♻️ سشن پنل با موفقیت ریست شد.");
                         return;
                     }
                     // 3️⃣ Reset user session
                     if (msg.text === "3") {
-                        (0, session_1.resetSession)(msg.from.id);
+                        resetSession(msg.from.id);
                         bot.sendMessage(msg.chat.id, "🧹 سشن شما به‌طور کامل ریست شد.\n/start");
                         return;
                     }

@@ -1,11 +1,5 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ENV = void 0;
-const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config();
+import dotenv from "dotenv";
+dotenv.config();
 function requireEnv(name) {
     const value = process.env[name];
     if (!value) {
@@ -13,7 +7,7 @@ function requireEnv(name) {
     }
     return value;
 }
-exports.ENV = {
+export const ENV = {
     BOT_TOKEN: requireEnv("BOT_TOKEN"),
     BOT_PASSWORD: requireEnv("BOT_PASSWORD"),
     PANEL_BASE_URL: requireEnv("PANEL_BASE_URL"),

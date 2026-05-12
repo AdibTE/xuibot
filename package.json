@@ -14,7 +14,8 @@
   "dependencies": {
     "axios": "^1.16.0",
     "dotenv": "^17.4.2",
-    "node-telegram-bot-api": "^0.67.0"
+    "node-telegram-bot-api": "^0.63.0",
+    "socks-proxy-agent": "^10.0.0"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",
@@ -24,4 +25,5 @@
     "ts-node-dev": "^2.0.0",
     "typescript": "^6.0.3"
   }
+  
 }

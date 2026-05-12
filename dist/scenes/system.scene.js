@@ -1,14 +1,11 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerSystemScene = registerSystemScene;
-const auth_guard_1 = require("../auth/auth.guard");
-const system_service_1 = require("../services/system.service");
-function registerSystemScene(bot) {
+import { requireAuth } from "../auth/auth.guard";
+import { getSystemStatus, getOnlineUsers, getTrafficStats, } from "../services/system.service";
+export function registerSystemScene(bot) {
     // 📊 وضعیت سیستم
     bot.onText(/📊 وضعیت سیستم/, (msg) => {
-        (0, auth_guard_1.requireAuth)(bot, msg, async () => {
+        requireAuth(bot, msg, async () => {
             try {
-                const status = await (0, system_service_1.getSystemStatus)();
+                const status = await getSystemStatus();
                 bot.sendMessage(msg.chat.id, `📊 وضعیت سیستم
 
 🖥 OS: ${status.os}
@@ -24,9 +21,9 @@ function registerSystemScene(bot) {
     });
     // 📡 کاربران آنلاین
     bot.onText(/👤 کاربران آنلاین/, (msg) => {
-        (0, auth_guard_1.requireAuth)(bot, msg, async () => {
+        requireAuth(bot, msg, async () => {
             try {
-                const online = await (0, system_service_1.getOnlineUsers)();
+                const online = await getOnlineUsers();
                 bot.sendMessage(msg.chat.id, `👤 کاربران آنلاین: ${online.length}`);
             }
             catch {
@@ -36,9 +33,9 @@ function registerSystemScene(bot) {
     });
     // 📈 ترافیک
     bot.onText(/📈 ترافیک/, (msg) => {
-        (0, auth_guard_1.requireAuth)(bot, msg, async () => {
+        requireAuth(bot, msg, async () => {
             try {
-                const traffic = await (0, system_service_1.getTrafficStats)();
+                const traffic = await getTrafficStats();
                 bot.sendMessage(msg.chat.id, `📈 ترافیک کلی
 
 ⬆️ آپلود: ${traffic.up}
