@@ -1,194 +1,280 @@
-import Bot from "node-telegram-bot-api";
-import { requireAuth } from "../auth/auth.guard";
-import { getSession, setSession } from "../state/session";
-import {
-  getClients,
-  addClient,
-  deleteClient,
-  resetClientTraffic,
-} from "../services/client.service";
+import { Scenes, Markup } from "telegraf";
+import { createApiClient, InboundClient } from "../api/xui";
+import { formatClientStat, formatBytes } from "../utils/format";
+import { BotContext } from "../bot";
+import { showMainMenu } from "./setup.scene";
 
-export function registerClientsScene(bot: Bot) {
-  // 👤 Clients entry
-  bot.onText(/👤 کاربران/, (msg) => {
-    requireAuth(bot, msg, () => {
-      setSession({ step: "CLIENT_MENU" });
+export const CLIENTS_SCENE_ID = "clients";
 
-      bot.sendMessage(
-        msg.chat.id,
-        `👤 مدیریت کاربران
-          1️⃣ لیست کاربران
-          2️⃣ افزودن کاربر
-          3️⃣ ریست ترافیک کاربر
-          4️⃣ حذف کاربر
+type ClientStep =
+  | "menu"
+  | "search_email"
+  | "add_inbound_id"
+  | "add_email"
+  | "add_total_gb"
+  | "add_expiry_days"
+  | "add_limit_ip"
+  | "delete_email_inbound"
+  | "delete_email"
+  | "reset_traffic_email"
+  | "reset_traffic_inbound"
+  | "client_ips_email"
+  | "clear_ips_email"
+  | "online_clients"
+  | "confirm_clear_ips";
 
-          عدد گزینه را ارسال کن`,
-      );
-    });
-  });
+interface ClientState {
+  step: ClientStep;
+  addData?: Partial<InboundClient> & { inboundId?: number };
+  tempInboundId?: number;
+  tempEmail?: string;
+}
 
-  bot.on("message", async (msg) => {
-    if (!msg.text || msg.text.startsWith("/")) return;
-    if (!getSession("authenticated") || !getSession("step")) return;
+export const clientsScene = new Scenes.BaseScene<BotContext>(CLIENTS_SCENE_ID);
 
-    try {
-      switch (getSession("step")) {
-        // 🧭 MENU
-        case "CLIENT_MENU":
-          if (msg.text === "1") {
-            setSession({ step: "CLIENT_LIST_INBOUND" });
-            bot.sendMessage(msg.chat.id, "🆔 inbound ID را وارد کن:");
-          }
+clientsScene.enter(async (ctx) => {
+  (ctx.scene.state as ClientState).step = "menu";
+  await showClientMenu(ctx);
+});
 
-          if (msg.text === "2") {
-            setSession({ step: "CLIENT_ADD_INBOUND" });
-            bot.sendMessage(msg.chat.id, "🆔 inbound ID را وارد کن:");
-          }
+clientsScene.command("cancel", exitScene);
+clientsScene.hears("🔙 بازگشت", exitScene);
 
-          if (msg.text === "3") {
-            setSession({ step: "CLIENT_RESET_INBOUND" });
-            bot.sendMessage(msg.chat.id, "🆔 inbound ID را وارد کن:");
-          }
+async function exitScene(ctx: BotContext) {
+  await ctx.scene.leave();
+  await showMainMenu(ctx);
+}
 
-          if (msg.text === "4") {
-            setSession({ step: "CLIENT_DELETE_INBOUND" });
-            bot.sendMessage(msg.chat.id, "🆔 inbound ID را وارد کن:");
-          }
-          break;
+async function showClientMenu(ctx: BotContext) {
+  await ctx.reply(
+    "👥 *مدیریت کلاینت‌ها*\nیک عملیات انتخاب کنید:",
+    {
+      ...Markup.keyboard([
+        ["🔍 جستجو با ایمیل", "➕ اضافه کردن کلاینت"],
+        ["🗑 حذف کلاینت", "🔄 ریست ترافیک کلاینت"],
+        ["🌐 IP های کلاینت", "🧹 پاک کردن IP ها"],
+        ["📡 کلاینت‌های آنلاین", "🔙 بازگشت"],
+      ]).resize(),
+    }
+  );
+}
 
-        // 📋 LIST
-        case "CLIENT_LIST_INBOUND":
-          setSession({ clientScene: { inboundId: Number(msg.text) } });
-          const clients = await getClients(
-            getSession("clientScene").inboundId!,
-          );
+clientsScene.hears("🔍 جستجو با ایمیل", async (ctx) => {
+  (ctx.scene.state as ClientState).step = "search_email";
+  await ctx.reply("📧 ایمیل کلاینت را وارد کنید:", Markup.removeKeyboard());
+});
 
-          setSession({ step: undefined });
+clientsScene.hears("➕ اضافه کردن کلاینت", async (ctx) => {
+  const state = ctx.scene.state as ClientState;
+  state.step = "add_inbound_id";
+  state.addData = {};
+  await ctx.reply("🆔 شناسه Inbound را وارد کنید:", Markup.removeKeyboard());
+});
 
-          if (!clients.length) {
-            bot.sendMessage(msg.chat.id, "❌ کاربری وجود ندارد");
-            return;
-          }
+clientsScene.hears("🗑 حذف کلاینت", async (ctx) => {
+  (ctx.scene.state as ClientState).step = "delete_email_inbound";
+  await ctx.reply("🆔 شناسه Inbound را وارد کنید:", Markup.removeKeyboard());
+});
 
-          bot.sendMessage(
-            msg.chat.id,
-            clients
-              .map((c: any) => `📧 ${c.email}\n⬆️ ${c.up} | ⬇️ ${c.down}`)
-              .join("\n\n"),
-          );
-          break;
+clientsScene.hears("🔄 ریست ترافیک کلاینت", async (ctx) => {
+  (ctx.scene.state as ClientState).step = "reset_traffic_inbound";
+  await ctx.reply("🆔 شناسه Inbound کلاینت را وارد کنید:", Markup.removeKeyboard());
+});
 
-        // ➕ ADD
-        case "CLIENT_ADD_INBOUND":
-          setSession({ clientScene: { inboundId: Number(msg.text) } });
-          setSession({ step: "CLIENT_ADD_EMAIL" });
-          bot.sendMessage(msg.chat.id, "📧 email کاربر را وارد کن:");
-          break;
+clientsScene.hears("🌐 IP های کلاینت", async (ctx) => {
+  (ctx.scene.state as ClientState).step = "client_ips_email";
+  await ctx.reply("📧 ایمیل کلاینت را وارد کنید:", Markup.removeKeyboard());
+});
 
-        case "CLIENT_ADD_EMAIL":
-          setSession({
-            clientScene: { ...getSession("clientScene"), email: msg.text },
-          });
-          setSession({ step: "CLIENT_ADD_LIMIT" });
-          bot.sendMessage(
-            msg.chat.id,
-            "📦 محدودیت ترافیک (GB) – عدد یا 0 برای نامحدود:",
-          );
-          break;
+clientsScene.hears("🧹 پاک کردن IP ها", async (ctx) => {
+  (ctx.scene.state as ClientState).step = "clear_ips_email";
+  await ctx.reply("📧 ایمیل کلاینت را وارد کنید:", Markup.removeKeyboard());
+});
 
-        case "CLIENT_ADD_LIMIT":
-          setSession({
-            clientScene: {
-              ...getSession("clientScene"),
-              limit: Number(msg.text),
-            },
-          });
-          setSession({ step: "CLIENT_ADD_CONFIRM" });
-
-          bot.sendMessage(
-            msg.chat.id,
-            `📌 تأیید افزودن کاربر
-                Inbound: ${getSession("clientScene").inboundId}
-                Email: ${getSession("clientScene").email}
-                Limit: ${getSession("clientScene").limit} GB
-
-                برای تأیید بنویس: yes`,
-          );
-          break;
-
-        case "CLIENT_ADD_CONFIRM":
-          if (msg.text.toLowerCase() !== "yes") {
-            setSession({ step: undefined });
-            bot.sendMessage(msg.chat.id, "❌ لغو شد");
-            return;
-          }
-
-          await addClient(getSession("clientScene").inboundId!, {
-            email: getSession("clientScene").email,
-            totalGB: getSession("clientScene").limit,
-          });
-
-          setSession({ step: undefined });
-          bot.sendMessage(msg.chat.id, "✅ کاربر اضافه شد");
-          break;
-
-        // 🔄 RESET
-        case "CLIENT_RESET_INBOUND":
-          setSession({ clientScene: { inboundId: Number(msg.text) } });
-          setSession({ step: "CLIENT_RESET_EMAIL" });
-          bot.sendMessage(msg.chat.id, "📧 email کاربر:");
-          break;
-
-        case "CLIENT_RESET_EMAIL":
-          await resetClientTraffic(
-            getSession("clientScene").inboundId!,
-            msg.text,
-          );
-          setSession({ step: undefined });
-          bot.sendMessage(msg.chat.id, "♻️ ترافیک ریست شد");
-          break;
-
-        // 🗑 DELETE
-        case "CLIENT_DELETE_INBOUND":
-          setSession({ clientScene: { inboundId: Number(msg.text) } });
-          setSession({ step: "CLIENT_DELETE_EMAIL" });
-          bot.sendMessage(msg.chat.id, "📧 email کاربر:");
-          break;
-
-        case "CLIENT_DELETE_EMAIL":
-          setSession({
-            clientScene: {
-              ...getSession("clientScene"),
-              email: msg.text,
-            },
-          });
-          setSession({ step: "CLIENT_DELETE_CONFIRM" });
-
-          bot.sendMessage(
-            msg.chat.id,
-            `⚠️ حذف کاربر ${getSession("clientScene").email}\nبرای تأیید بنویس: delete`,
-          );
-          break;
-
-        case "CLIENT_DELETE_CONFIRM":
-          if (msg.text.toLowerCase() !== "delete") {
-            setSession({ step: undefined });
-            bot.sendMessage(msg.chat.id, "❌ لغو شد");
-            return;
-          }
-
-          await deleteClient(
-            getSession("clientScene").inboundId!,
-            getSession("clientScene").email!,
-          );
-
-          setSession({ step: undefined });
-          bot.sendMessage(msg.chat.id, "🗑 کاربر حذف شد");
-          break;
-      }
-    } catch {
-      setSession({ step: undefined });
-      bot.sendMessage(msg.chat.id, "❌ خطا در عملیات. دوباره تلاش کن.");
+clientsScene.hears("📡 کلاینت‌های آنلاین", async (ctx) => {
+  await withApi(ctx, async (api) => {
+    const clients = await api.getOnlineClients();
+    if (!clients.length) {
+      await ctx.reply("هیچ کلاینت آنلاینی وجود ندارد.");
+    } else {
+      const list = clients.map((c, i) => `${i + 1}. ${c}`).join("\n");
+      await ctx.reply(`📡 *کلاینت‌های آنلاین (${clients.length}):*\n\n${list}`, {
+      
+      });
     }
   });
+  await showClientMenu(ctx);
+});
+
+clientsScene.on("text", async (ctx) => {
+  const state = ctx.scene.state as ClientState;
+  const text = ctx.message.text.trim();
+  if (text.startsWith("/")) return;
+
+  switch (state.step) {
+    case "search_email": {
+      await withApi(ctx, async (api) => {
+        const stat = await api.getClientTrafficsByEmail(text);
+        await ctx.reply(formatClientStat(stat));
+      });
+      state.step = "menu";
+      await showClientMenu(ctx);
+      break;
+    }
+
+    case "add_inbound_id": {
+      const id = parseInt(text);
+      if (isNaN(id)) { await ctx.reply("❌ شناسه نامعتبر."); return; }
+      state.addData!.inboundId = id;
+      state.step = "add_email";
+      await ctx.reply("📧 ایمیل کلاینت را وارد کنید:");
+      break;
+    }
+
+    case "add_email": {
+      state.addData!.email = text;
+      state.step = "add_total_gb";
+      await ctx.reply("💾 حجم مجاز به گیگابایت وارد کنید (0 = نامحدود):");
+      break;
+    }
+
+    case "add_total_gb": {
+      const gb = parseFloat(text);
+      if (isNaN(gb) || gb < 0) { await ctx.reply("❌ مقدار نامعتبر."); return; }
+      state.addData!.totalGB = gb * 1024 * 1024 * 1024;
+      state.step = "add_expiry_days";
+      await ctx.reply("📅 تعداد روز تا انقضاء وارد کنید (0 = نامحدود):");
+      break;
+    }
+
+    case "add_expiry_days": {
+      const days = parseInt(text);
+      if (isNaN(days) || days < 0) { await ctx.reply("❌ مقدار نامعتبر."); return; }
+      state.addData!.expiryTime = days === 0 ? 0 : Date.now() + days * 86400000;
+      state.step = "add_limit_ip";
+      await ctx.reply("🔢 حداکثر تعداد IP مجاز (0 = نامحدود):");
+      break;
+    }
+
+    case "add_limit_ip": {
+      const limit = parseInt(text);
+      if (isNaN(limit) || limit < 0) { await ctx.reply("❌ مقدار نامعتبر."); return; }
+      state.addData!.limitIp = limit;
+
+      await withApi(ctx, async (api) => {
+        const client: InboundClient = {
+          email: state.addData!.email!,
+          totalGB: state.addData!.totalGB || 0,
+          expiryTime: state.addData!.expiryTime || 0,
+          limitIp: state.addData!.limitIp || 0,
+          enable: true,
+          id: crypto.randomUUID(),
+        };
+        await api.addClient(state.addData!.inboundId!, client);
+        await ctx.reply(
+          `✅ *کلاینت اضافه شد!*\n\n` +
+          `📧 ایمیل: ${client.email}\n` +
+          `💾 حجم: ${client.totalGB > 0 ? formatBytes(client.totalGB) : "نامحدود"}\n` +
+          `🔢 حد IP: ${client.limitIp || "نامحدود"}`,
+          
+        );
+      });
+
+      state.step = "menu";
+      state.addData = {};
+      await showClientMenu(ctx);
+      break;
+    }
+
+    case "delete_email_inbound": {
+      const id = parseInt(text);
+      if (isNaN(id)) { await ctx.reply("❌ شناسه نامعتبر."); return; }
+      state.tempInboundId = id;
+      state.step = "delete_email";
+      await ctx.reply("📧 ایمیل کلاینت را وارد کنید:");
+      break;
+    }
+
+    case "delete_email": {
+      await withApi(ctx, async (api) => {
+        await api.deleteClientByEmail(state.tempInboundId!, text);
+        await ctx.reply(`✅ کلاینت ${text} حذف شد.`);
+      });
+      state.step = "menu";
+      await showClientMenu(ctx);
+      break;
+    }
+
+    case "reset_traffic_inbound": {
+      const id = parseInt(text);
+      if (isNaN(id)) { await ctx.reply("❌ شناسه نامعتبر."); return; }
+      state.tempInboundId = id;
+      state.step = "reset_traffic_email";
+      await ctx.reply("📧 ایمیل کلاینت را وارد کنید:");
+      break;
+    }
+
+    case "reset_traffic_email": {
+      await withApi(ctx, async (api) => {
+        await api.resetClientTraffic(state.tempInboundId!, text);
+        await ctx.reply(`✅ ترافیک کلاینت ${text} ریست شد.`);
+      });
+      state.step = "menu";
+      await showClientMenu(ctx);
+      break;
+    }
+
+    case "client_ips_email": {
+      await withApi(ctx, async (api) => {
+        const ips = await api.getClientIps(text);
+        if (!ips.length) {
+          await ctx.reply(`هیچ IP‌ای برای ${text} ثبت نشده.`);
+        } else {
+          await ctx.reply(`🌐 *IP های ${text}:*\n\n${ips.join("\n")}`, {
+          });
+        }
+      });
+      state.step = "menu";
+      await showClientMenu(ctx);
+      break;
+    }
+
+    case "clear_ips_email": {
+      state.tempEmail = text;
+      state.step = "confirm_clear_ips";
+      await ctx.reply(
+        `⚠️ IP های کلاینت *${text}* پاک شود؟`,
+        { ...Markup.keyboard([["✅ بله", "❌ خیر"]]).resize() }
+      );
+      break;
+    }
+
+    case "confirm_clear_ips": {
+      if (text === "✅ بله") {
+        await withApi(ctx, async (api) => {
+          await api.clearClientIps(state.tempEmail!);
+          await ctx.reply(`✅ IP های ${state.tempEmail} پاک شد.`);
+        });
+      } else {
+        await ctx.reply("❌ عملیات لغو شد.");
+      }
+      state.step = "menu";
+      await showClientMenu(ctx);
+      break;
+    }
+  }
+});
+
+async function withApi(ctx: BotContext, fn: (api: Awaited<ReturnType<typeof createApiClient>>) => Promise<void>) {
+  if (!ctx.session?.panel) {
+    await ctx.reply("❌ ابتدا باید پنل را تنظیم کنید.");
+    return;
+  }
+  try {
+    const api = await createApiClient(ctx.session.panel);
+    await fn(api);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "خطای ناشناخته";
+    await ctx.reply(`❌ خطا: ${message}`);
+  }
 }

@@ -1,151 +1,78 @@
-# 🤖 Telegram Bot for 3x-ui Panel (Node.js)
+# 🤖 3x-ui Telegram Bot
 
-یک ربات تلگرام **ماژولار، تمیز و قابل توسعه** برای مدیریت پنل **3x-ui**  
-ساخته‌شده با **Node.js + TypeScript** و کتابخانه `node-telegram-bot-api`
+ربات تلگرام برای مدیریت کامل پنل **3x-ui** از طریق تلگرام.
 
-> مناسب برای ادمین‌هایی که می‌خوان بدون لاگین به پنل،  
-> وضعیت سیستم، Inbounds، کاربران و تنظیمات رو از داخل تلگرام کنترل کنن.
+## ✨ قابلیت‌ها
 
----
+- 📋 مدیریت Inbound‌ها (لیست، جزئیات، حذف، ریست ترافیک)
+- 👥 مدیریت کلاینت‌ها (اضافه، حذف، جستجو، ریست ترافیک، IP‌ها)
+- 🔧 مدیریت Xray (ری‌استارت، توقف، نصب نسخه، آپدیت Geofiles)
+- 📊 وضعیت سرور (CPU، RAM، Disk، Uptime، شبکه)
+- 📝 لاگ‌های سیستم و Xray
+- 💾 بکاپ به تلگرام بات پنل
+- 🔐 احراز هویت بر اساس Telegram User ID
 
-## ✨ Features
+## 🚀 نصب و راه‌اندازی
 
-- 🔐 **Login واقعی به پنل 3x-ui**
-- 🌐 مدیریت **Inbounds**
-- 👥 مشاهده و مدیریت **Clients**
-- 📊 وضعیت سیستم (CPU / RAM / Uptime)
-- ⚙️ تنظیمات ربات
-- 🧠 Session-based state (بدون دردسر)
-- 🧩 معماری Scene-based (قابل گسترش)
-- ⌨️ Keyboards استاندارد و قابل توسعه
-- 🛡️ Guard برای احراز هویت
+### پیش‌نیازها
+- Node.js >= 18
+- یک پنل 3x-ui فعال با دسترسی API
 
----
-
-## 🧱 Project Structure
+### مراحل
 
 ```bash
-src/
- ├─ bot.ts                 # Entry point
- ├─ config/
- │   ├─ env.ts             # Env & config loader
- │   └─ api.ts             # Axios instance
- ├─ auth/
- │   └─ auth.guard.ts      # Auth middleware
- ├─ scenes/
- │   ├─ login.scene.ts
- │   ├─ inbounds.scene.ts
- │   ├─ clients.scene.ts
- │   ├─ system.scene.ts
- │   └─ settings.scene.ts
- ├─ services/
- │   ├─ auth.service.ts
- │   ├─ inbound.service.ts
- │   ├─ client.service.ts
- │   └─ system.service.ts
- ├─ state/
- │   └─ session.ts         # Session management
- └─ utils/
-     ├─ cancel.ts
-     └─ keyboards.ts
-```
-
-📌 **نکته مهم**  
-این ساختار **قرارداد پروژه** محسوب می‌شه.  
-تمام توسعه‌های بعدی باید مطابق همین معماری انجام بشن.
-
----
-
-## 🚀 Getting Started
-
-### 1️⃣ Clone project
-
-```bash
-git clone https://github.com/your-username/3x-ui-telegram-bot.git
-cd 3x-ui-telegram-bot
-```
-
----
-
-### 2️⃣ Install dependencies
-
-```bash
+# 1. نصب وابستگی‌ها
 npm install
+
+# 2. ساختن فایل .env
+cp .env.example .env
+
+# 3. ویرایش .env
+nano .env
 ```
 
----
-
-### 3️⃣ Environment Variables
-
-یک فایل `.env` بساز:
+### تنظیم `.env`
 
 ```env
-BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN
-PANEL_BASE_URL=https://your-panel-domain
+# توکن ربات از @BotFather
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+
+# شناسه‌های تلگرام مجاز (اگر چند نفر، با کاما جدا کن)
+ALLOWED_USER_IDS=123456789,987654321
 ```
 
----
+> **نکته:** برای یافتن Telegram User ID خود، به @userinfobot پیام بدهید.
 
-### 4️⃣ Run (Development)
+### اجرا
 
 ```bash
+# توسعه
 npm run dev
-```
 
-یا:
-
-```bash
+# پروداکشن
 npm run build
 npm start
 ```
 
----
+## 🔐 امنیت
 
-## 🧠 Architecture Philosophy
+- ربات تنها به User ID‌های مشخص‌شده در `ALLOWED_USER_IDS` پاسخ می‌دهد.
+- اتصال به پنل از طریق داخل تلگرام و در هر session جداگانه انجام می‌شود.
+- اطلاعات پنل (URL، نام کاربری، رمز) در session تلگرام نگه‌داشته می‌شود و در `.env` ذخیره نمی‌شود.
 
-- Scene-based architecture
-- Service layer separation
-- Stateful sessions
-- Single source of truth keyboards
+## 📖 نحوه استفاده
 
----
+1. `/start` - شروع و مشاهده راهنما
+2. **⚙️ تنظیم پنل** - وارد کردن آدرس پنل، نام کاربری و رمز
+3. بعد از اتصال موفق، منوی اصلی نمایش داده می‌شود
+4. `/cancel` - لغو هر عملیات در حال انجام
 
-## ⌨️ Main Keyboard
+## 🔄 فلو احراز هویت
 
-```ts
-export const mainKeyboard = {
-  reply_markup: {
-    keyboard: [
-      [{ text: "👤 کاربران آنلاین" }, { text: "📊 وضعیت سیستم" }],
-      [{ text: "🌐 Inbounds" }, { text: "📈 ترافیک" }],
-      [{ text: "⚙️ تنظیمات" }],
-    ],
-    resize_keyboard: true,
-  },
-};
 ```
-
----
-
-## 🔒 Authentication Flow
-
-1. /start
-2. login scene
-3. panel login
-4. auth guard protects all scenes
-
----
-
-## 📈 Future Improvements
-
-- Redis persistence
-- Role-based access
-- Inline keyboards
-- Logging system
-- Multi-panel support
-
----
-
-## 📜 License
-
-MIT
+/start
+  └─> اگر وصل نیست ─> Setup Scene
+        ├─> URL پنل
+        ├─> نام کاربری  
+        └─> رمز عبور ─> تست اتصال ─> منوی اصلی
+```
