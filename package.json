@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/bot.ts",
+    "dev": "nodemon --watch src --ext ts --exec ts-node src/bot.ts",
     "build": "tsc",
     "start": "node dist/bot.js"
   },

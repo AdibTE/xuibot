@@ -1,38 +1,54 @@
 export interface Session {
   authenticated: boolean;
   lastActivity: number;
+  credentials: { username?: string; password?: string };
+  inboundScene: {
+    protocol?: string;
+    port?: number;
+    remark?: string;
+    id?: number;
+  };
+  clientScene: {
+    inboundId?: number;
+    email?: string;
+    limit?: number;
+  };
   step?: string;
-  data?: Record<string, any>;
   panelCookie?: string;
 }
 
-const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 دقیقه
-const sessions = new Map<number, Session>();
+const defaultSession: Session = {
+  authenticated: false,
+  lastActivity: Date.now(),
+  step: undefined,
+  credentials: { username: undefined, password: undefined },
+  panelCookie: undefined,
+  inboundScene: {
+    port: undefined,
+    protocol: undefined,
+    remark: undefined,
+    id: undefined,
+  },
+  clientScene: {
+    inboundId: undefined,
+    email: undefined,
+    limit: undefined,
+  },
+};
 
-export function getSession(userId?: number): Session {
-  if (!userId) throw new Error("no user id!");
-  if (!sessions.has(userId)) {
-    sessions.set(userId, {
-      authenticated: false,
-      lastActivity: Date.now(),
-    });
-  }
-  return sessions.get(userId)!;
+let sessions = defaultSession;
+
+export function getSession<K extends keyof Session>(key: K): Session[K] {
+  return sessions[key];
 }
 
-export function resetSession(userId: number) {
-  sessions.set(userId, {
-    authenticated: false,
-    lastActivity: Date.now(),
-    step: undefined,
-    data: undefined
-  });
+export function setSession(dto: Partial<Session>) {
+  sessions = {
+    ...sessions,
+    ...dto,
+  };
 }
 
-export function clearSession(userId: number) {
-  sessions.delete(userId);
-}
-
-export function isSessionExpired(session: Session): boolean {
-  return Date.now() - session.lastActivity > SESSION_TIMEOUT;
+export function resetSession() {
+  sessions = defaultSession;
 }

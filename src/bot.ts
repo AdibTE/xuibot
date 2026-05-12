@@ -9,7 +9,7 @@ import { registerSettingsScene } from "./scenes/settings.scene";
 import { isAuthorized } from "./auth/auth.guard";
 import { SocksProxyAgent } from "socks-proxy-agent";
 
-const proxy = "socks5://127.0.0.1:40000";
+const proxy = "socks5://127.0.0.1:10808";
 const agent = new SocksProxyAgent(proxy);
 
 const bot = new TelegramBot(ENV.BOT_TOKEN, {

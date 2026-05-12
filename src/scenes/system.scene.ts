@@ -17,11 +17,11 @@ export function registerSystemScene(bot: Bot) {
           msg.chat.id,
           `📊 وضعیت سیستم
 
-🖥 OS: ${status.os}
-⏱ Uptime: ${status.uptime}
-🧠 CPU: ${status.cpu}%
-💾 RAM: ${status.mem.current} / ${status.mem.total}
-💽 Disk: ${status.disk.current} / ${status.disk.total}`,
+          🖥 OS: ${status.os}
+          ⏱ Uptime: ${status.uptime}
+          🧠 CPU: ${status.cpu}%
+          💾 RAM: ${status.mem.current} / ${status.mem.total}
+          💽 Disk: ${status.disk.current} / ${status.disk.total}`,
         );
       } catch {
         bot.sendMessage(msg.chat.id, "❌ دریافت وضعیت سیستم ناموفق بود.");
@@ -52,8 +52,8 @@ export function registerSystemScene(bot: Bot) {
           msg.chat.id,
           `📈 ترافیک کلی
 
-⬆️ آپلود: ${traffic.up}
-⬇️ دانلود: ${traffic.down}`,
+          ⬆️ آپلود: ${traffic.up}
+          ⬇️ دانلود: ${traffic.down}`,
         );
       } catch {
         bot.sendMessage(msg.chat.id, "❌ دریافت اطلاعات ترافیک ناموفق بود.");

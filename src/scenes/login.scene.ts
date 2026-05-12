@@ -1,41 +1,39 @@
 import Bot from "node-telegram-bot-api";
-import { ENV } from "../config/env";
-import { getSession } from "../state/session";
+import { getSession, setSession } from "../state/session";
 import { mainKeyboard } from "../utils/keyboards";
 import { loginPanel } from "../services/auth.service";
 
 export function registerLoginScene(bot: Bot) {
   bot.on("message", async (msg) => {
-    const userId = msg.from?.id;
     const chatId = msg.chat.id;
-    const session = getSession(userId);
-    if (session.authenticated) return;
+    if (getSession("authenticated")) return;
     if (!msg.text || msg.text.startsWith("/")) return;
 
-    if (!session.step) {
-      session.step = "username";
+    if (!getSession("step")) {
+      setSession({ step: "username" });
       bot.sendMessage(chatId, "👤 نام کاربری پنل را وارد کنید:");
       return;
     }
 
-    if (session.step === "username") {
-      session.data = { username: msg.text };
-      session.step = "password";
+    if (getSession("step") === "username") {
+      setSession({ credentials: { username: msg.text } });
+      setSession({ step: "password" });
       bot.sendMessage(chatId, "🔑 رمز عبور پنل را وارد کنید:");
       return;
     }
 
-    if (session.step === "password") {
-      const { username } = session.data!;
-      const password = msg.text;
-      session.data = { ...session.data, password };
-      
-      try {
-        const cookie = await loginPanel(username, password);
+    if (getSession("step") === "password") {
+      setSession({
+        credentials: { ...getSession("credentials"), password: msg.text },
+      });
+      setSession({ step: undefined });
 
-        session.authenticated = true;
-        session.panelCookie = cookie;
-        session.step = undefined;
+      try {
+        const { username, password } = getSession("credentials");
+        const cookie = await loginPanel(username!, password!);
+
+        setSession({ authenticated: true });
+        setSession({ panelCookie: cookie });
 
         bot.sendMessage(
           msg.chat.id,
@@ -43,7 +41,7 @@ export function registerLoginScene(bot: Bot) {
           mainKeyboard,
         );
       } catch {
-        session.step = undefined;
+        setSession({ step: undefined });
         bot.sendMessage(
           msg.chat.id,
           "❌ اتصال به پنل ناموفق بود.\nتنظیمات پنل را بررسی کن.",

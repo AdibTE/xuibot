@@ -20,7 +20,7 @@ export async function checkPanelSession(): Promise<boolean> {
   try {
     await api.get("/panel/api/status");
     return true;
-  } catch {
+  } catch (e) {
     return false;
   }
 }
@@ -32,6 +32,6 @@ export async function ensurePanelLogin(): Promise<void> {
   const isValid = await checkPanelSession();
 
   if (!isValid) {
-    throw new Error("session timedout. relogin")
+    throw new Error("session timedout. relogin");
   }
 }
