@@ -7,6 +7,7 @@ import { registerLoginScene } from "./scenes/login.scene";
 import { registerInboundsScene } from "./scenes/inbounds.scene";
 import { registerClientsScene } from "./scenes/clients.scene";
 import { registerSettingsScene } from "./scenes/settings.scene";
+import { isAuthorized } from "./auth/auth.guard";
 
 const proxy = "socks5://127.0.0.1:40000";
 const agent = new SocksProxyAgent(proxy);
@@ -20,6 +21,13 @@ const bot = new TelegramBot(ENV.BOT_TOKEN, {
 });
 
 bot.onText(/\/start/, (msg) => {
+  const userId = msg.from?.id;
+
+  if (!isAuthorized(userId)) {
+    bot.sendMessage(msg.chat.id, "⛔ شما اجازه استفاده از این ربات را ندارید.");
+    return;
+  }
+
   bot.sendMessage(
     msg.chat.id,
     `🤖 ربات مدیریت پنل 3x-ui

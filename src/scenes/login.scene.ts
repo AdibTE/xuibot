@@ -5,32 +5,50 @@ import { mainKeyboard } from "../utils/keyboards";
 import { loginPanel } from "../services/auth.service";
 
 export function registerLoginScene(bot: Bot) {
-  bot.on("message", async msg => {
+  bot.on("message", async (msg) => {
+    const userId = msg.from?.id;
+    const chatId = msg.chat.id;
+    const session = getSession(userId);
+    if (session.authenticated) return;
     if (!msg.text || msg.text.startsWith("/")) return;
 
-    const session = getSession(msg.from!.id);
-    if (session.authenticated) return;
-
-    if (msg.text !== ENV.BOT_PASSWORD) {
-      bot.sendMessage(msg.chat.id, "❌ پسورد اشتباهه.");
+    if (!session.step) {
+      session.step = "username";
+      bot.sendMessage(chatId, "👤 نام کاربری پنل را وارد کنید:");
       return;
     }
 
-    try {
-      await loginPanel();
+    if (session.step === "username") {
+      session.data = { username: msg.text };
+      session.step = "password";
+      bot.sendMessage(chatId, "🔑 رمز عبور پنل را وارد کنید:");
+      return;
+    }
 
-      session.authenticated = true;
+    if (session.step === "password") {
+      const { username } = session.data!;
+      const password = msg.text;
+      session.data = { ...session.data, password };
+      
+      try {
+        const cookie = await loginPanel(username, password);
 
-      bot.sendMessage(
-        msg.chat.id,
-        "✅ احراز هویت موفق بود.\nبه پنل متصل شدیم.",
-        mainKeyboard
-      );
-    } catch {
-      bot.sendMessage(
-        msg.chat.id,
-        "❌ اتصال به پنل ناموفق بود.\nتنظیمات پنل را بررسی کن."
-      );
+        session.authenticated = true;
+        session.panelCookie = cookie;
+        session.step = undefined;
+
+        bot.sendMessage(
+          msg.chat.id,
+          "✅ احراز هویت موفق بود.\nبه پنل متصل شدیم.",
+          mainKeyboard,
+        );
+      } catch {
+        session.step = undefined;
+        bot.sendMessage(
+          msg.chat.id,
+          "❌ اتصال به پنل ناموفق بود.\nتنظیمات پنل را بررسی کن.",
+        );
+      }
     }
   });
 }

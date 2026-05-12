@@ -8,24 +8,24 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-let isRefreshing = false;
+// let isRefreshing = false;
 
-api.interceptors.response.use(
-  res => res,
-  async error => {
-    if (error.response?.status === 401 && !isRefreshing) {
-      isRefreshing = true;
+// api.interceptors.response.use(
+//   res => res,
+//   async error => {
+//     if (error.response?.status === 401 && !isRefreshing) {
+//       isRefreshing = true;
 
-      try {
-        await loginPanel();
-        isRefreshing = false;
-        return api(error.config); // retry original request
-      } catch (e) {
-        isRefreshing = false;
-        throw e;
-      }
-    }
+//       try {
+//         await loginPanel();
+//         isRefreshing = false;
+//         return api(error.config); // retry original request
+//       } catch (e) {
+//         isRefreshing = false;
+//         throw e;
+//       }
+//     }
 
-    throw error;
-  }
-);
+//     throw error;
+//   }
+// );

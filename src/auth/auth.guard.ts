@@ -1,11 +1,11 @@
 import { getSession } from "../state/session";
 import Bot, { Message } from "node-telegram-bot-api";
 import { isSessionExpired, resetSession } from "../state/session";
+import { ENV } from "../config/env";
 
 export function requireAuth(bot: Bot, msg: Message, next: () => void) {
   const session = getSession(msg.from!.id);
-
-  if (!session.authenticated) {
+  if (!session.authenticated && !session.panelCookie) {
     bot.sendMessage(msg.chat.id, "🔐 لطفاً ابتدا لاگین کن.");
     return;
   }
@@ -18,4 +18,9 @@ export function requireAuth(bot: Bot, msg: Message, next: () => void) {
 
   session.lastActivity = Date.now();
   next();
+}
+
+export function isAuthorized(userId?: number): boolean {
+  if (!userId) return false;
+  return ENV.ADMINS.includes(userId);
 }

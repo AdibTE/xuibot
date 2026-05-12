@@ -47,8 +47,13 @@ export function registerSettingsScene(bot: Bot) {
 
           // 2️⃣ Reset panel session
           if (msg.text === "2") {
-            await loginPanel();
+            const session = getSession(msg.from?.id);
+            if (!session.data) {
+              bot.sendMessage(msg.chat.id, "سشن شما منقضی شده است. دوباره لاگین کنید.");
+              return;
+            }
 
+            await loginPanel(session.data.username, session.data.password);
             session.step = undefined;
             bot.sendMessage(msg.chat.id, "♻️ سشن پنل با موفقیت ریست شد.");
             return;

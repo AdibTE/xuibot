@@ -17,4 +17,6 @@ export const ENV = {
   PANEL_BASE_URL: requireEnv("PANEL_BASE_URL"),
   PANEL_USERNAME: requireEnv("PANEL_USERNAME"),
   PANEL_PASSWORD: requireEnv("PANEL_PASSWORD"),
+
+  ADMINS: requireEnv("ADMINS").split(",").map(Number)
 };

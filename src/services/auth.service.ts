@@ -1,15 +1,15 @@
 import { api } from "../config/api";
-import { ENV } from "../config/env";
 
 /**
  * Login to 3x-ui panel
  * This will store session cookie inside axios instance
  */
-export async function loginPanel(): Promise<void> {
-  await api.post("/login", {
-    username: ENV.PANEL_USERNAME,
-    password: ENV.PANEL_PASSWORD,
-  });
+export async function loginPanel(username: string, password: string) {
+  const res = await api.post("/login", { username, password });
+
+  const cookie = res.headers["set-cookie"]?.[0];
+  if (!cookie) throw new Error("Login failed");
+  return cookie;
 }
 
 /**
@@ -32,6 +32,6 @@ export async function ensurePanelLogin(): Promise<void> {
   const isValid = await checkPanelSession();
 
   if (!isValid) {
-    await loginPanel();
+    throw new Error("session timedout. relogin")
   }
 }
