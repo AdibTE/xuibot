@@ -7,7 +7,7 @@ import { registerInboundsScene } from "./scenes/inbounds.scene";
 import { registerClientsScene } from "./scenes/clients.scene";
 import { registerSettingsScene } from "./scenes/settings.scene";
 import { isAuthorized } from "./auth/auth.guard";
-import { SocksProxyAgent } from "socks-proxy-agent/dist";
+import { SocksProxyAgent } from "socks-proxy-agent/dist/index";
 
 const proxy = "socks5://127.0.0.1:40000";
 const agent = new SocksProxyAgent(proxy);
