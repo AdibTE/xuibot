@@ -12,11 +12,6 @@ function requireEnv(name: string): string {
 
 export const ENV = {
   BOT_TOKEN: requireEnv("BOT_TOKEN"),
-  BOT_PASSWORD: requireEnv("BOT_PASSWORD"),
-
   PANEL_BASE_URL: requireEnv("PANEL_BASE_URL"),
-  PANEL_USERNAME: requireEnv("PANEL_USERNAME"),
-  PANEL_PASSWORD: requireEnv("PANEL_PASSWORD"),
-
   ADMINS: requireEnv("ADMINS").split(",").map(Number)
 };
